@@ -1,96 +1,43 @@
+// A very basic way to run queries in various source formats
+// Connections are mostly defined by the source types
+// connection.type IS required by this step
+
 var Promise = require('bluebird');
+var jsonToSqlite = require('./helpers/jsonToSqlite');
 var tools = require('jm-tools');
-var sources = require('places-sync-sources');
+var CreateActions = require('./helpers/createActions');
 
-var Mockingbird = function (callback) {
-  return (callback && typeof callback === 'function') ? function (f) {
-    f(function (res) {
-      callback(null, res);
-    },
-      function (err) {
-        callback(err);
-      }
-    );
-  } : Promise;
-};
+module.exports = function (sourceConfig, masterCache) {
+  var sourceType = sourceConfig.connection && sourceConfig.connection.type;
+  var sources = tools.requireDirectory(__dirname + '/sources', [__filename], sourceType === 'json' ? ['json.js'] : undefined);
+  var source = sources[sourceType];
 
-module.exports = function (masterCache, sourceA, sourceB, twoWay, callback) {
-  return new (Mockingbird(callback))(function (fulfill, reject) {
+  // TODO: Compare source permissions
+  if (!source) {
+    return tools.dummyPromise(undefined, 'Invalid Source type specified in connection: ' + (sourceConfig.connection && sourceConfig.connection.type));
+  } else if (!sourceConfig.name) {
+    return tools.dummyPromise(undefined, 'All sources must have a name\n\t' + JSON.stringify(sourceConfig, null, 2));
+  } else {
+    return new Promise(function (fulfill, reject) {
+      var taskList = [{
+        'name': 'dataToJson',
+        'description': 'Converts the source into a JSON format',
+        'task': sources[sourceConfig.connection.type],
+        'params': [sourceConfig]
+      }, {
+        'name': 'Create Database',
+        'description': 'Creates a database from the JSON representation of the data and the columns',
+        'task': jsonToSqlite,
+        'params': ['{{dataToJson.data}}', '{{dataToJson.columns}}']
+      }];
 
-    var setUpTasks = [{
-      'name': 'masterCache',
-      'description': 'Loads the source for the master sqlite database, gets info for it, and does not load data to cache',
-      'task': sources,
-      'params': [masterCache]
-    }, {
-      'name': 'sourceAConnection',
-      'description': 'Loads the source for sourceA table a, gets info for it, and loads data to cache',
-      'task': sources,
-      'params': [sourceA, '{{masterCache}}']
-    }, {
-      'name': 'sourceBConnection',
-      'description': 'Loads the source for sourceB, gets info for it, and loads data to cache',
-      'task': sources,
-      'params': [sourceB, '{{masterCache}}']
-    }, {
-      'name': 'updatesFromSourceA',
-      'description': 'Gets an object containing the records that were updated and the records that were removed from sourceA since the last write to sourceB in the masterCache',
-      'task': '{{sourceAConnection.get.updates}}',
-      'params': ['{{sourceBConnection.get.name}}']
-    }];
-
-    var twoWayTasks = [{
-      'name': 'updatedFromSourceB',
-      'description': 'Gets an object containing the records that were updated and the records that were removed from sourceB since the last write to sourceA in the masterCache',
-      'task': '{{sourceBConnection.get.updates}}',
-      'params': [sourceA.name]
-    }, {
-      'name': 'applyUpdatesToSourceA',
-      'description': 'Adds the updates and removes to the sourceA object',
-      'task': '{{sourceAConnection.modify.applyUpdates}}',
-      'params': ['{{updatedFromSourceB}}']
-    }, {
-      'name': 'saveSourceA',
-      'description': 'Write data out to B and write it to the masterCache',
-      'task': '{{sourceAConnection.save}}',
-      'params': []
-    }, {
-      'name': 'closeSourceA',
-      'description': 'Closes the Source and frees up memory',
-      'task': '{{sourceAConnection.close}}',
-      'params': []
-    }];
-
-    var saveSourceBTasks = [{
-      'name': 'applyUpdatesToSourceB',
-      'description': 'Adds the updates and removes to the b object',
-      'task': '{{sourceBConnection.modify.applyUpdates}}',
-      'params': ['{{updatesFromSourceA}}']
-    }, {
-      'name': 'saveSourceB',
-      'description': 'Write data out to B and write it to the masterCache',
-      'task': '{{sourceBConnection.save}}',
-      'params': []
-    }, {
-      'name': 'closeSourceB',
-      'description': 'Closes the Source and frees up memory',
-      'task': '{{sourceBConnection.close}}',
-      'params': []
-    }];
-
-    var taskList = setUpTasks;
-    if (twoWay) {
-      taskList = taskList.concat(twoWayTasks);
-    }
-    taskList = taskList.concat(saveSourceBTasks);
-
-    tools.iterateTasks(taskList).then(function (results) {
-      fulfill(results);
-    }).catch(function (e) {
-      if (e === undefined) {
-        e = new Error('undefined error');
-      }
-      reject(e);
+      tools.iterateTasks(taskList, 'create source ' + sourceConfig.name, false).then(function (r) {
+        var database = tools.arrayGetLast(r);
+        var columns = r[0].columns; // TODO, should we use the columns from the db (r[1]) instead?
+        var writeToSource = r[0].writeFn;
+        var querySource = r[0].querySource;
+        fulfill(new CreateActions(database, columns, writeToSource, querySource, masterCache, sourceConfig));
+      }).catch(reject);
     });
-  });
+  }
 };
