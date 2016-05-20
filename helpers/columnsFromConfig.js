@@ -1,11 +1,13 @@
 var notFalsey = function (v, name, ignoreCase) {
+  console.log('-==-', v, name, ignoreCase, '-==-');
   v = Array.isArray(v) ? v : [v];
 
   // If we're ignoring case, make an array of everything in lower case
   var lowerV = ignoreCase ? v.map(function (a) {
     return a.toLowerCase ? a.toLowerCase() : a;
   }) : v;
-  var idx = lowerV.indexOf(name.toLowerCase());
+  var idx = lowerV.indexOf(ignoreCase ? name.toLowerCase() : name);
+  console.log(idx, lowerV, ignoreCase ? name.toLowerCase() : name);
   return idx > -1 ? idx : false;
 };
 
