@@ -78,7 +78,7 @@ module.exports = function (columns, primaryKey, lastUpdatedField, removedField, 
         return '"removed"."' + pk + '" = "cached"."' + pk + '"';
       }).join(' AND ');
       selectAllQuery += ' LEFT JOIN  "updated" ON ' + queryKey.map(function (pk) {
-        return '"updated".' + pk + ' = "cached"."' + pk + '"';
+        return '"updated"."' + pk + '" = "cached"."' + pk + '"';
       }).join(' AND ');
       selectAllQuery += ' WHERE';
       selectAllQuery += queryKey.map(function (pk) {
