@@ -84,8 +84,7 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
     'f': 'json'
   };
 
-  return getAsync(sourceUrl + 'query?', getCount).then(function (countResultRaw) {
-    var countResult = JSON.parse(countResultRaw.text);
+  return postAsync(sourceUrl + 'query', getCount).then(function (countResult) {
     if (!countResult.error) {
       var requests = [];
       var count = countResult.count;
@@ -93,18 +92,18 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
         if (queryObj.resultOffset !== undefined) {
           queryObj.resultOffset = i;
         }
-        requests.push([sourceUrl + 'query?', queryObj]);
+        requests.push([sourceUrl + 'query', queryObj]);
       }
       return tools.iterateTasks(requests.map(function (req) {
         return {
           'name': 'Query ' + req,
-          'task': getAsync,
+          'task': postAsync,
           'params': req
         };
       })).then(function (baseResults) {
         baseResults = Array.isArray(baseResults) ? baseResults : [];
-        return new Promise(function (fulfill, reject) {
-          var esriJson = baseResults[0] ? JSON.parse(baseResults[0].text) : {};
+        return new Promise(function (resolve, reject) {
+          var esriJson = JSON.parse(JSON.stringify(baseResults[0] || {}));
           var outputJson = [];
           var geoJson;
           var hasGeometries = false;
@@ -112,7 +111,7 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
 
           esriJson.features = [];
           baseResults.forEach(function (baseResult) {
-            JSON.parse(baseResult.text).features.forEach(function (row) {
+            baseResult.features.forEach(function (row) {
               if (row.geometry !== undefined) {
                 hasGeometries = true;
               }
@@ -145,11 +144,12 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
             });
           }
 
-          fulfill(outputJson);
+          console.log('outputJson', outputJson);
+          resolve(outputJson);
         });
       });
     } else {
-      return new Promise(function (fulfill, reject) {
+      return new Promise(function (resolve, reject) {
         reject(new Error(countResult.error.code + ' ' + countResult.error.message + ' ' + countResult.error.details));
       });
     }
@@ -159,13 +159,17 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
 var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, fields) {
   return function (type, whereObj, returnColumns) {
     // If there's a where object already defined in the source, we need to merge them
-    var newWhereObj = mapFields.data.from([tools.mergeObjects(baseFilter || {}, whereObj)],fields.mapped)[0];
+    // TODO: mapped fields
+    // var newWhereObj = mapFields.data.from([tools.mergeObjects(baseFilter || {}, whereObj)],fields.mapped)[0]
+    var newWhereObj = tools.mergeObjects(baseFilter || {}, whereObj);
 
     // Define the columns we're going to return to the user
-    returnColumns = mapFields.columns.from(returnColumns || columns, fields.mapped);
+    // TODO: mapped fields
+    // returnColumns = mapFields.columns.from(returnColumns || columns, fields.mapped)
+    returnColumns = returnColumns || columns;
 
     // Add the columns we're querying, if they exist
-    for (k in newWhereObj) {
+    for (var k in newWhereObj) {
       if (returnColumns.indexOf(k) < 0 && tools.simplifyArray(columns).indexOf(k) >= 0) {
         returnColumns.push(k);
       }
@@ -184,7 +188,7 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
       return c.type === 'esriFieldTypeDate';
     }));
 
-    // Update the newWhereObj with some special stuff to deal with dates in AGOL 
+    // Update the newWhereObj with some special stuff to deal with dates in AGOL
     newWhereObj = arcgisWhereObj(newWhereObj, dateColumns);
 
     // Create the query making object
@@ -213,7 +217,9 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
     query.where = fandlebars(query.where, preQuery[1]);
 
     return runQuery(connectionString.url, query, keys.primaryKeys).then(function (result) {
-      return mapFields.data.to(result, fields.mapped);
+      // TODO Map Fields
+      return result;
+    // return mapFields.data.to(result, fields.mapped)
     });
   };
 };
@@ -227,16 +233,22 @@ var copyValues = function (values, baseObj) {
   });
   return returnValue;
 };
-var getAsync = function (url, query) {
-  return new Promise(function (fulfill, reject) {
-    console.log(url, query);
-    superagent.get(url)
-      .query(query)
+var postAsync = function (url, query) {
+  return new Promise(function (resolve, reject) {
+    superagent.post(url)
+      .set('Accept', 'application/json')
+      .send(superagent.serialize['application/x-www-form-urlencoded'](query))
       .end(function (err, res) {
+        var body;
+        try {
+          body = JSON.parse(res.text);
+        } catch (e) {
+          err = err || e;
+        }
         if (err) {
           reject(err);
         } else {
-          fulfill(res);
+          resolve(body);
         }
       });
   });
@@ -268,15 +280,10 @@ module.exports = function (sourceConfig) {
   // The regexp adds a trailing slash if there isn't already one
   connectionConfig = connectionConfig.set('url', connectionConfig.get('url').replace(/^(.+?)\/?$/g, '$1/'));
 
-  return getAsync(connectionConfig.get('url'), {
+  return postAsync(connectionConfig.get('url'), {
     'f': 'json'
   }).then(function (source) {
-    return new Promise(function (fulfill, reject) {
-      try {
-        source = JSON.parse(source.text);
-      } catch (e) {
-        reject(e);
-      }
+    return new Promise(function (resolve, reject) {
       // From this source, we just need to get the column info
       var esriColumns = source.fields.map(function (column, i) {
         return {
@@ -316,7 +323,7 @@ module.exports = function (sourceConfig) {
 
       var columns = columnsFromConfig(esriColumns, sourceInfoFields, true);
 
-      fulfill({
+      resolve({
         'data': undefined,
         'columns': columns,
         'writeFn': undefined, // TODO allow writing
