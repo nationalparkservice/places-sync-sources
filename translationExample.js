@@ -1,4 +1,11 @@
-var translator= require('places-sync-translator');
+var translator = require('places-sync-translator');
+var example = module.exports = function (source, type) {
+  return translator(source, type).then(function (translatedGeoJson) {
+    return translatedGeoJson;
+  }).catch(function (err) {
+    throw err;
+  });
+};
 
 var testSource = {
   'name': 'Generic ArcGIS',
@@ -11,13 +18,4 @@ var testSource = {
   }
 };
 
-var example = function (source, type) {
-  translator(source).then(function (translatedGeoJson) {
-    console.log(translatedGeoJson);
-  }).catch(function (err) {
-    throw err;
-  });
-};
-
-
-example(testSource, 'poi');
+// example(testSource, 'poi')
