@@ -18,4 +18,6 @@ var testSource = {
   }
 };
 
-// example(testSource, 'poi')
+// example(testSource, 'poi').then(function(){
+  // console.log('done');
+// });
