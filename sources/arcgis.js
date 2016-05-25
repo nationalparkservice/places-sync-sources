@@ -144,7 +144,7 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
             });
           }
 
-          console.log('outputJson', outputJson);
+          // console.log('outputJson', outputJson);
           resolve(outputJson);
         });
       });
