@@ -15,7 +15,7 @@
     "json-stringify-pretty-compact": "1.0.1",
     "places-sync-databases": "git+https://github.com/nationalparkservice/places-sync-databases",
     "places-sync-translator": "git+https://github.com/nationalparkservice/places-sync-translator",
-    "superagent": "2.0.0-alpha.3",
+    "superagent": "2.0.0",
     "terraformer-arcgis-parser": "1.0.4"
   },
   "description": "Connect to specific files and tables and query them easily",
