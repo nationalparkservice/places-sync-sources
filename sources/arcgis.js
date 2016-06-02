@@ -61,19 +61,24 @@ var esriToGeoJson = function (esriJson, options) {
 };
 
 var arcgisWhereObj = function (whereObj, dateColumns) {
+  var newWhereObj = {};
+
   // esri dates come in as a unix timestamp in milliseconds, but go out as date strings
   var timestampToDate = function (ts) {
     var dt = new Date(ts);
     return (dt.getUTCMonth() + 1) + '/' + dt.getUTCDate() + '/' + dt.getUTCFullYear() + ' ' + dt.getUTCHours() + ':' + dt.getUTCHours() + ':' + dt.getUTCMinutes() + '.' + dt.getUTCMilliseconds();
   };
-  var newWhereObj = {};
   for (var field in whereObj) {
     if (dateColumns.indexOf(field) > -1 && typeof whereObj[field] !== 'object') {
       newWhereObj[field] = "'" + timestampToDate(whereObj[field]) + "'";
     } else {
-      newWhereObj[field] = "'" + whereObj[field] + "'";
+      newWhereObj[field] = whereObj[field];
     }
   }
+  // Add the filter to every where
+  // Object.keys(filter || {}).forEach(function (k) {
+  // newWhereObj[k] = filter[k]
+  // })
   return newWhereObj;
 };
 
@@ -144,7 +149,7 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
             });
           }
 
-          // console.log('outputJson', outputJson);
+          // console.log('outputJson', outputJson)
           resolve(outputJson);
         });
       });
@@ -214,7 +219,17 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
     }
 
     // Replaces the values in the where clause with the fields since arcgis won't do a parameterized query
-    query.where = fandlebars(query.where, preQuery[1]);
+    var quotedQuery = {};
+    Object.keys(preQuery[1]).forEach(function (k) {
+      if (preQuery[1][k] !== null && preQuery[1][k] !== undefined) {
+        quotedQuery[k] = tools.surroundValues(preQuery[1][k], "'");
+      } else {
+        quotedQuery[k] = null;
+      }
+    });
+    // ArcGIS doesn't support the != for not equal, so we have to use <>
+    query.where = query.where.replace(/" != /g, '" <> ');
+    query.where = fandlebars(query.where, quotedQuery);
 
     return runQuery(connectionString.url, query, keys.primaryKeys).then(function (result) {
       // TODO Map Fields
