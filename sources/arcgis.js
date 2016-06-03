@@ -70,7 +70,7 @@ var arcgisWhereObj = function (whereObj, dateColumns) {
   };
   for (var field in whereObj) {
     if (dateColumns.indexOf(field) > -1 && typeof whereObj[field] !== 'object') {
-      newWhereObj[field] = "'" + timestampToDate(whereObj[field]) + "'";
+      newWhereObj[field] = timestampToDate(whereObj[field]);
     } else {
       newWhereObj[field] = whereObj[field];
     }
@@ -155,7 +155,7 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
       });
     } else {
       return new Promise(function (resolve, reject) {
-        reject(new Error(countResult.error.code + ' ' + countResult.error.message + ' ' + countResult.error.details));
+        reject(new Error(countResult.error.code + ' ' + countResult.error.message + ' ' + countResult.error.details + '\n' + '  QUERY:' + JSON.stringify(getCount)));
       });
     }
   });
@@ -228,6 +228,7 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
       }
     });
     // ArcGIS doesn't support the != for not equal, so we have to use <>
+    console.log('a', query.where, quotedQuery);
     query.where = query.where.replace(/" != /g, '" <> ');
     query.where = fandlebars(query.where, quotedQuery);
 
