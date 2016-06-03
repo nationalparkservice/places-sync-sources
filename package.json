@@ -13,9 +13,11 @@
     "immutable": "3.8.1",
     "jm-tools": "git+https://github.com/jimmyrocks/jm-tools",
     "json-stringify-pretty-compact": "1.0.1",
+    "oauth": "0.9.14",
     "places-sync-databases": "git+https://github.com/nationalparkservice/places-sync-databases",
     "places-sync-translator": "git+https://github.com/nationalparkservice/places-sync-translator",
     "superagent": "2.0.0",
+    "superagent-oauth": "0.2.3", 
     "terraformer-arcgis-parser": "1.0.4"
   },
   "description": "Connect to specific files and tables and query them easily",
