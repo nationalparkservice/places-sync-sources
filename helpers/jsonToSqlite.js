@@ -9,6 +9,7 @@ var getColumnInfo = function (data, existingColumns) {
   var newColumns = [];
   var defaultValues = {};
   // Try to read column info from the data, if data exists, otherwise use the existing columns
+
   if (data) {
     data.forEach(function (row) {
       for (var column in row) {
@@ -57,7 +58,8 @@ var getColumnInfo = function (data, existingColumns) {
 };
 
 module.exports = function (data, existingColumns) {
-  return new Promise(function (fulfill, reject) {
+  return new Promise(function (resolve, reject) {
+    console.log('a', data, existingColumns);
     var columns = getColumnInfo(data, existingColumns);
 
     var tempDbConfig = {
@@ -129,7 +131,7 @@ module.exports = function (data, existingColumns) {
       'params': [insertStatement, tools.arrayify(data)]
     }];
     tools.iterateTasks(taskList, 'jsonToSqlite', false).then(function (a) {
-      fulfill(tools.arrayGetLast(a, true));
+      resolve(tools.arrayGetLast(a, true));
     }).catch(reject);
   });
 };
