@@ -27,7 +27,13 @@ module.exports = function (sourceConfig, masterCache) {
       }, {
         'name': 'Create Database',
         'description': 'Creates a database from the JSON representation of the data and the columns',
-        'task': jsonToSqlite,
+        'task': function (d, c) {
+          if (d && d.query) {
+            return d;
+          } else {
+            return jsonToSqlite(d, c);
+          }
+        },
         'params': ['{{dataToJson.data}}', '{{dataToJson.columns}}']
       }];
 
