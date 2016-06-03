@@ -33,6 +33,12 @@ var mainTask = [{
     modify: {}
   }
 }, {
+  'name': 'getColumns',
+  'task': '{{loadArcGisSource.get.columns}}',
+  'params': [],
+  'operator': 'jstype',
+  'expected': 'array'
+}, {
   'name': 'getDataA',
   'task': '{{loadArcGisSource.get.all}}',
   'params': [],
@@ -40,7 +46,7 @@ var mainTask = [{
   'expected': 'array'
 }, {
   'name': 'getCount',
-  'task': function (_) {
+  'task': function(_) {
     return _;
   },
   'params': ['{{getDataA.length}}'],
@@ -48,11 +54,11 @@ var mainTask = [{
   'expected': 'number'
 }];
 
-filters.forEach(function (filter, i) {
+filters.forEach(function(filter, i) {
   var tasks = [{
     'name': 'filteredConnection' + i,
     'description': 'Add the filter to the connection',
-    'task': function (s, f) {
+    'task': function(s, f) {
       var newSource = JSON.parse(JSON.stringify(s));
       newSource.filter = f;
       return newSource;
@@ -81,7 +87,7 @@ filters.forEach(function (filter, i) {
     'expected': 'array'
   }, {
     'name': 'getCount' + i,
-    'task': function (_) {
+    'task': function(_) {
       return _;
     },
     'params': ['{{getDataTest' + i + '.length}}'],
@@ -89,24 +95,24 @@ filters.forEach(function (filter, i) {
     'expected': 'number'
   }, {
     'name': 'compareCount',
-    'task': function (a, b, operator) {
+    'task': function(a, b, operator) {
       var tests = {
-        '>=': function (a, b) {
+        '>=': function(a, b) {
           return a >= b;
         },
-        '<=': function (a, b) {
+        '<=': function(a, b) {
           return a <= b;
         },
-        '!=': function (a, b) {
+        '!=': function(a, b) {
           return a !== b;
         },
-        '>': function (a, b) {
+        '>': function(a, b) {
           return a > b;
         },
-        '<': function (a, b) {
+        '<': function(a, b) {
           return a < b;
         },
-        '=': function (a, b) {
+        '=': function(a, b) {
           return a === b;
         }
       };
@@ -116,7 +122,7 @@ filters.forEach(function (filter, i) {
     'operator': 'equal',
     'expected': true
   }];
-  tasks.forEach(function (task) {
+  tasks.forEach(function(task) {
     mainTask.push(task);
   });
 });
