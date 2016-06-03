@@ -1,8 +1,9 @@
 var tools = require('jm-tools');
 var iterateTapeTasks = tools.iterateTapeTasks;
 var requireDirectory = tools.requireDirectory;
+var args = process.argv.slice(2);
 
-var tests = requireDirectory(__dirname, 'index.js');
+var tests = requireDirectory(__dirname, 'index.js', args.length ? args : null);
 var mainTaskList = [];
 
 console.log(tests);
