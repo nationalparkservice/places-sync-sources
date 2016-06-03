@@ -33,6 +33,7 @@ var recordsToCompare = function (records, sourceName, keys, ignoreKeys, emptyHas
 };
 
 module.exports = function (lastSyncTime, updatedSinceTime, allKeys, allMasterKeys, sourceColumns) {
+  // TODO, SOMEWHERE IN HERE IS THE ERROR
   var jsonUpdatedRecords = recordsToCompare(updatedSinceTime, 'user', sourceColumns);
   var jsonAllKeys = recordsToCompare(allKeys, 'user', sourceColumns, simplifyArray(jsonUpdatedRecords, 'key'), true);
   var jsonMasterKeys = recordsToCompare(allMasterKeys, 'master', {
