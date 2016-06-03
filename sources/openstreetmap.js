@@ -1,103 +1,153 @@
-// var sources = tools.requireDirectory(__dirname, [__filename], sourceType === 'json' ? ['json.js'] : undefined);
-/* OpenStreetMap Connections:
- */
-
 var Promise = require('bluebird');
-var Immutable = require('immutable');
+var template = require('./_template.js');
 var tools = require('jm-tools');
+var sources = tools.requireDirectory(__dirname + '/', [__filename, '_template.js', 'index.js']);
+var superagent = require('superagent');
+var OAuth = require('oauth').OAuth;
 var columnsFromConfig = require('../helpers/columnsFromConfig');
-var columnsToKeys = require('../helpers/columnsToKeys');
-var databases = require('places-sync-databases');
+require('superagent-oauth')(superagent);
 
-var WriteFn = function (connection, options, columns) {
-  // var keys = columnsToKeys(columns);
+var directReturn = function (_) {
+  return _;
+};
 
-  return function (updated, removed, metadata) {
-    console.log(metadata);
-    process.exit(0);
-    var tasks = [];
-    var removeTasks = [];
-    var keys = columnsToKeys(columns);
-    if (keys.removedFieldValue !== undefined) {
-      removed.forEach(function (row) {
-        row[keys.removedField] = keys.removedFieldValue;
-        updated.push(row);
-      });
-      removed = [];
-    }
-    updated.forEach(function (updatedRow, i) {
-      var masterKey = keys.primaryKeys.map(function (key) {
-        return updatedRow[key];
-      }).join('');
-      var matchedMetadata = tools.arrayify(metadata).filter(function (record) {
-        return record.key === masterKey;
-      });
-      tasks.push({
-        'name': 'Remove / Write Update Row ' + i + JSON.stringify(updatedRow),
-        'task': tools.iterateTasks,
-        'params': [
-          [{
-            'name': 'Remove',
-            'task': connection.query,
-            'params': ['remove', updatedRow, keys.primaryKeys, matchedMetadata]
-          }, {
-            'name': 'Write',
-            'task': connection.query,
-            'params': ['insert', updatedRow, columns, matchedMetadata]
-          }],
-          'update cartodb db', true
-        ]
-      });
-    });
-    removed.forEach(function (removedRow, i) {
-      removeTasks.push({
-        'name': 'Remove Removed Row ' + i,
-        'task': connection.query // ,
-      // 'params': createQueries('remove', removedRow, keys.primaryKeys, tableName)
-      });
-    });
+var parseColumns = function (inColumns) {
+  console.log('INCOLUMZ', inColumns);
+  return columnsFromConfig(inColumns);
+  /*
+  return columnsFromConfig([{
+    'name': 'key',
+    'type': 'text',
+    'sqliteType': 'text',
+    'defaultValue': '',
+    'notNull': true,
+    'sqliteColumnId': 0,
+    'primaryKey': 1
+  }, {
+    'name': 'members',
+    'type': 'text',
+    'sqliteType': 'text',
+    'defaultValue': '',
+    'notNull': true,
+    'sqliteColumnId': 2,
+    'primaryKey': 0
+  }, {
+    'name': 'foreign_key',
+    'type': 'text',
+    'sqliteType': 'text',
+    'defaultValue': '',
+    'notNull': true,
+    'sqliteColumnId': 3,
+    'primaryKey': 0
+  }, {
+    'name': 'source_tags',
+    'type': 'text',
+    'sqliteType': 'text',
+    'defaultValue': '',
+    'notNull': true,
+    'sqliteColumnId': 4,
+    'primaryKey': 0
+  }, {
+    'name': 'last_update',
+    'type': 'NUMERIC',
+    'sqliteType': 'NUMERIC',
+    'defaultValue': 0,
+    'notNull': true,
+    'sqliteColumnId': 5,
+    'primaryKey': 0
+  }]);
+  */
+};
 
-    return Promise.all(tasks.map(function (task) {
-      return task.task.apply(this, task.params);
-    })).then(function () {
-      return Promise.all(removeTasks.map(function (removeTask) {
-        return removeTask.task.apply(this, removeTask.params);
-      }));
-    });
+var createOauth = function (connection) {
+  console.log('***', connection, '***');
+  return new OAuth(
+    'http://' + connection.address + 'oauth/request_token',
+    'http://' + connection.address + 'oauth/access_token',
+    connection.consumer_key,
+    connection.consumer_secret,
+    '1.0',
+    null,
+    'HMAC-SHA1');
+};
+
+var validateUser = function (connection, oauth) {
+  return new Promise(function (resolve, reject) {
+    superagent.get(connection.address + '0.6/user/details.json')
+      .sign(oauth, connection.access_key, connection.access_secret)
+      .end(function (err, res) {
+        if (!err && res.status === 200) {
+          resolve(res.body);
+        } else {
+          reject(new Error(err));
+        }
+      });
+  });
+};
+
+var createCache = function (cacheConfig) {
+  return sources[cacheConfig.type](cacheConfig).then(function (source) {});
+};
+
+var loadCache = function (cacheConnectionConfig) {
+  return sources[cacheConnectionConfig];
+};
+
+var load = function (connection, columns) {
+  tasks = [{
+    'name': 'OAuth',
+    'description': 'Creates the oauth object',
+    'task': createOauth,
+    'params': [connection]
+  }, {
+    'name': 'userInfo',
+    'description': 'Tests the OAuth by getting the user info',
+    'task': validateUser,
+    'params': [connection, '{{OAuth}}']
+  }, {
+    'name': 'columns',
+    'description': 'columns',
+    'task': parseColumns,
+    'params': [columns]
+  }, {
+    'name': 'data',
+    'description': 'data',
+    'task': directReturn,
+    'params': [
+      []
+    ]
+  }];
+  return tasks;
+};
+
+var QuerySource = function (databaseConnection) {
+  return function (type, whereObj, returnColumns) {
+    returnColumns = returnColumns || columns;
+    var keys = columnsToKeys(returnColumns);
+    var createQueries = new CreateQueries(columns, keys.primaryKeys, keys.lastUpdatedField, keys.removedField);
+  // / TODO: ?
   };
 };
 
-module.exports = function (sourceConfig, options) {
-  return new Promise(function (fulfill, reject) {
-    // Clean up the connectionConfig, and set the defaults
-    var connectionConfig = new Immutable.Map(sourceConfig.connection);
-    var requiredConnectionFields = ['address', 'consumer_key', 'consumer_secret', 'access_key', 'access_secret'];
-    requiredConnectionFields.forEach(function (field) {
-      if (typeof connectionConfig.get(field) !== 'string') {
-        reject(new Error(field + ' must be defined for an OpenStreetMap Connection'));
-      }
-    });
-    if (tools.getJsType(sourceConfig.columns) !== 'array') {
-      reject(new Error('Source Columns must be defined for an OpenStreetMap Connection'));
-    }
+var WriteFn = function (databaseConnection, connectionConfig, columns) {};
 
-    // Define the taskList
-    var tasks = [{
-      'name': 'createConnection',
-      'description': 'Connects to the OpenStreetMap API and verifies user credentials',
-      'task': databases,
-      'params': [
-        connectionConfig.toObject()
-      ]
-    }];
-    tools.iterateTasks(tasks, 'osm').then(function (r) {
-      var columns = columnsFromConfig(sourceConfig.columns, sourceConfig.fields);
-      fulfill({
-        'data': [], // TODO: Support queries from OpenStreetMap
-        'columns': columns,
-        'writeFn': new WriteFn(r[0], options, columns),
-        'querySource': undefined // TODO: Support queries from OpenStreetMap
-      });
-    }).catch(reject);
-  });
+// Prepare for the next release of places-sync-sources
+var osmSource = {
+  'QuerySource': QuerySource,
+  'WriteFn': WriteFn,
+  'defaultFields': {},
+  'requiredFields': {
+    'connection': {
+      'address': 'string',
+      'consumer_key': 'string',
+      'consumer_secret': 'string',
+      'access_key': 'string',
+      'access_secret': 'string'
+    }
+  },
+  'load': load
+};
+
+module.exports = function (config) {
+  return template(config, osmSource);
 };
