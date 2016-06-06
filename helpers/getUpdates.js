@@ -45,8 +45,8 @@ module.exports = function (lastSyncTime, updatedSinceTime, allKeys, allMasterKey
   var data = [].concat(jsonUpdatedRecords, jsonAllKeys, jsonMasterKeys);
   if (data.length === 0) {
     // No updates, no need to run this
-    return new Promise(function (fulfill) {
-      fulfill({});
+    return new Promise(function (resolve) {
+      resolve({});
     });
   }
 
@@ -69,7 +69,7 @@ module.exports = function (lastSyncTime, updatedSinceTime, allKeys, allMasterKey
     });
     return source.get._database().query(query).then(function (changedData) {
       return source.close().then(function () {
-        return new Promise(function (fulfill) {
+        return new Promise(function (resolve) {
           var returnObject = {
             'metadata': changedData
           };
@@ -80,7 +80,7 @@ module.exports = function (lastSyncTime, updatedSinceTime, allKeys, allMasterKey
             var matchedRecord = updatedSinceTime[simplifyArray(jsonUpdatedRecords, 'key').indexOf(record.key.toString())];
             returnObject[record.action].push(matchedRecord || keyCombine.split(sourceColumns.primaryKeys, record.key));
           });
-          fulfill(returnObject);
+          resolve(returnObject);
         });
       });
     });
