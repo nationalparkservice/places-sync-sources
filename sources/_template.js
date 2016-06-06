@@ -34,25 +34,34 @@ var checkRequiredFields = function (immutableConfig, requireFields) {
   // Check if there are any required fields in the sourceConfig
   requireFields = requireFields || {};
   var validFields = [];
-  var isValid = false;
   var sourceConfigType;
   var sourceConfigTypeField;
 
+  var checkType = function (field, sourceConfigTypeField, requiredField) {
+    // It's valid if the source config has the config type, and the field is not === undefined, and the field type === the specified type
+    // (you CAN specify undefined as a type, although I can't think of a case why you'd want that)
+    return {
+      'field': field,
+      'valid': (
+        sourceConfigTypeField &&
+        (
+          (typeof sourceConfigTypeField === requiredField) ||
+          (sourceConfigTypeField !== undefined && requiredField === 'any') ||
+          (requiredField === 'objectData' && typeof sourceConfigTypeField === 'object' && Object.keys(sourceConfigTypeField).length > 0)
+        )
+        ) || false
+    };
+  };
+
   for (var configType in requireFields) {
     sourceConfigType = immutableConfig[configType];
-    for (var field in requireFields[configType]) {
-      // It's valid if the source config has the config type, and the field is not === undefined, and the field type === the specified type
-      // (you CAN specify undefined as a type, although I can't think of a case why you'd want that)
-      sourceConfigTypeField = sourceConfigType && sourceConfigType.toJS() && sourceConfigType.toJS()[field];
-      isValid = (
-        sourceConfigTypeField &&
-        ((typeof sourceConfigTypeField === requireFields[configType][field]) ||
-        (sourceConfigTypeField !== undefined && requireFields[configType][field] === 'any'))
-      );
-      validFields.push({
-        'field': configType + '.' + field,
-        'valid': isValid
-      });
+    if (typeof requireFields[configType] === 'object') {
+      for (var field in requireFields[configType]) {
+        sourceConfigTypeField = sourceConfigType && sourceConfigType.toJS() && sourceConfigType.toJS()[field];
+        validFields.push(checkType(configType + '.' + field, sourceConfigTypeField, requireFields[configType][field]));
+      }
+    } else {
+      validFields.push(checkType(configType, sourceConfigType && sourceConfigType.toJS(), requireFields[configType]));
     }
   }
   return validFields;
