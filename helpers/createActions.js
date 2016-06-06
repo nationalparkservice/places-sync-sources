@@ -82,25 +82,25 @@ module.exports = function (database, columns, writeToSource, querySource, master
         // gets the max date from the lastUpdate field, a rowData can be applied to this
         // Should tell you to last time the source was updated
         // if rowData is applied, it will use that as a where clause / filter
-        return new Promise(function (fulfill, reject) {
+        return new Promise(function (resolve, reject) {
           if (keys.lastUpdatedField) {
             if (querySource) {
               querySource('selectLastUpdate', rowData).then(function (r) {
-                fulfill(r[0].lastUpdate);
+                resolve(r[0].lastUpdate);
               }).catch(reject);
             } else {
               queryDatabase('selectLastUpdate', rowData, undefined, 'cached').then(function (r) {
-                fulfill(r[0].lastUpdate);
+                resolve(r[0].lastUpdate);
               }).catch(reject);
             }
           } else {
-            fulfill(-1); // Return -1 is there is no "lastUpdatedField"
+            resolve(-1); // Return -1 is there is no "lastUpdatedField"
           }
         });
       },
       'updates': function (otherSourceName) {
         getUpdates = getUpdates || require('../helpers/getUpdates');
-        return new Promise(function (fulfill, reject) {
+        return new Promise(function (resolve, reject) {
           var masterCacheQuery = {
             'process': sourceConfig.connection.processName || 'sync',
             'source': otherSourceName
@@ -146,7 +146,7 @@ module.exports = function (database, columns, writeToSource, querySource, master
             results.allKeys = promiseResults[1];
             results.masterCacheKeys = promiseResults[2];
             getUpdates(results.lastSyncTime, results.updatedSinceTime, results.allKeys, results.masterCacheKeys, keys).then(function (values) {
-              fulfill(values);
+              resolve(values);
             }).catch(reject);
           }).catch(reject);
         });
@@ -265,7 +265,9 @@ module.exports = function (database, columns, writeToSource, querySource, master
           tasks.push(actions.modify.metadata(row));
         });
         // TODO: Should this return the updates it applied?
-        return Promise.all(tasks);
+        return Promise.all(tasks).filter(function (obj) {
+          return Object.keys(obj).length;
+        });
       }
     }
   };
