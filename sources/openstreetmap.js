@@ -143,7 +143,8 @@ var osmSource = {
       'consumer_secret': 'string',
       'access_key': 'string',
       'access_secret': 'string'
-    }
+    },
+    'columns': 'objectData'
   },
   'load': load
 };
