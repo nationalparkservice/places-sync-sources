@@ -11,7 +11,7 @@ var jsonToSqlite = require('../helpers/jsonToSqlite');
 // ///////////////////////////////////////////////////
 // ///////////////////////////////////////////////////
 // ///////////////////////////////////////////////////
-var addDefaultFields = function (immutableConfig, defaultFields) {
+var addDefaultFields = function(immutableConfig, defaultFields) {
   // Even though these fields are immutable, this is the one place that we modify them to add defaults
   // Usually this is still like UTF8 for file encoding
   // and PostgreSQL databases usually have the schema public
@@ -30,14 +30,14 @@ var addDefaultFields = function (immutableConfig, defaultFields) {
   return immutableConfig;
 };
 
-var checkRequiredFields = function (immutableConfig, requireFields) {
+var checkRequiredFields = function(immutableConfig, requireFields) {
   // Check if there are any required fields in the sourceConfig
   requireFields = requireFields || {};
   var validFields = [];
   var sourceConfigType;
   var sourceConfigTypeField;
 
-  var checkType = function (field, sourceConfigTypeField, requiredField) {
+  var checkType = function(field, sourceConfigTypeField, requiredField) {
     // It's valid if the source config has the config type, and the field is not === undefined, and the field type === the specified type
     // (you CAN specify undefined as a type, although I can't think of a case why you'd want that)
     return {
@@ -50,7 +50,7 @@ var checkRequiredFields = function (immutableConfig, requireFields) {
           (requiredField === 'objectData' && typeof sourceConfigTypeField === 'object' && Object.keys(sourceConfigTypeField).length > 0) ||
           (requiredField === 'objectNoData' && typeof sourceConfigTypeField === 'object' && Object.keys(sourceConfigTypeField).length === 0)
         )
-        ) || false
+      ) || false
     };
   };
 
@@ -68,14 +68,15 @@ var checkRequiredFields = function (immutableConfig, requireFields) {
   return validFields;
 };
 
-var createSource = function (sourceConfig, returnObj) {
+var createSource = function(sourceConfig, returnObj) {
   // Extract the values we need and make them Immutable
   var immutableConfig = {
     'connection': new Immutable.Map(sourceConfig.connection),
     'fields': new Immutable.Map(sourceConfig.fields),
     'columns': new Immutable.Set(sourceConfig.columns),
     'filter': new Immutable.Map(sourceConfig.filter),
-    'transforms': new Immutable.Map(sourceConfig.transforms)
+    'transforms': new Immutable.Map(sourceConfig.transforms),
+    'translation': new Immutable.Set(sourceConfig.translation)
   };
   var sourceName = sourceConfig.name;
 
@@ -87,7 +88,7 @@ var createSource = function (sourceConfig, returnObj) {
 
   // Check the required fields for this type of source
   var validFields = checkRequiredFields(immutableConfig, source.requiredFields);
-  var invalidFields = validFields.filter(function (field) {
+  var invalidFields = validFields.filter(function(field) {
     return field.valid === false;
   });
   if (invalidFields.length > 0) {
@@ -100,7 +101,7 @@ var createSource = function (sourceConfig, returnObj) {
     return tools.dummyPromise(null, 'All sources must be named with a string');
   }
 
-  return new Promise(function (resolve, reject) {
+  return new Promise(function(resolve, reject) {
     var taskList = [{
       'name': 'sourceTasks',
       'description': 'Load the tasks from the source',
@@ -122,7 +123,7 @@ var createSource = function (sourceConfig, returnObj) {
       'task': jsonToSqlite,
       'params': ['{{dataToJson.data}}', '{{columns}}']
     }];
-    tools.iterateTasks(taskList, 'create source ' + sourceConfig.name, false).then(function (result) {
+    tools.iterateTasks(taskList, 'create source ' + sourceConfig.name, false).then(function(result) {
       var columns = result.columns; // TODO, should we use the columns from the db (result.database) instead?
       var data = result.database;
       var databaseConnection = result.dataToJson.databaseConnection || result.dataToJson.data;
