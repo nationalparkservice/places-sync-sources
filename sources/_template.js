@@ -47,7 +47,8 @@ var checkRequiredFields = function (immutableConfig, requireFields) {
         (
           (typeof sourceConfigTypeField === requiredField) ||
           (sourceConfigTypeField !== undefined && requiredField === 'any') ||
-          (requiredField === 'objectData' && typeof sourceConfigTypeField === 'object' && Object.keys(sourceConfigTypeField).length > 0)
+          (requiredField === 'objectData' && typeof sourceConfigTypeField === 'object' && Object.keys(sourceConfigTypeField).length > 0) ||
+          (requiredField === 'objectNoData' && typeof sourceConfigTypeField === 'object' && Object.keys(sourceConfigTypeField).length === 0)
         )
         ) || false
     };
