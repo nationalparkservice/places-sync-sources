@@ -135,7 +135,7 @@ module.exports = function (database, columns, writeToSource, querySource, master
             'name': 'masterCacheKeys',
             'description': 'Get ALL keys from the master cache, so we can tell what used to exist that doesnt anymore',
             'task': masterCache ? masterCache.get.allKeys : tools.dummyPromise,
-            'params': [masterCache ? masterCacheQuery : {}]
+            'params': [masterCache ? masterCacheQuery : []]
           }];
           Promise.all(
             unorderedTasks.map(function (task) {
