@@ -144,7 +144,8 @@ var osmSource = {
       'access_key': 'string',
       'access_secret': 'string'
     },
-    'columns': 'objectData'
+    'columns': 'objectData',
+    'fields': 'objectNoData'
   },
   'load': load
 };
