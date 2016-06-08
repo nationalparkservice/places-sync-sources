@@ -127,8 +127,8 @@ var createSource = function(sourceConfig, returnObj) {
       var columns = result.columns; // TODO, should we use the columns from the db (result.database) instead?
       var data = result.database;
       var databaseConnection = result.dataToJson.databaseConnection || result.dataToJson.data;
-      var writeToSource = source.WriteFn && new source.WriteFn(databaseConnection, immutableConfig.connection.toJS(), columns);
-      var querySource = source.QuerySource && new source.QuerySource(databaseConnection, immutableConfig.connection.toJS(), columns);
+      var writeToSource = source.WriteFn && new source.WriteFn(databaseConnection, immutableConfig.connection.toJS(), columns, immutableConfig);
+      var querySource = source.QuerySource && new source.QuerySource(databaseConnection, immutableConfig.connection.toJS(), columns, immutableConfig);
 
       resolve({
         'data': data,
