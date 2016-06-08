@@ -73,21 +73,12 @@ var createSource = function (data, translationType, columns) {
       'type': 'json',
       'translationType': 'generic'
     },
-    'columns': [],
-    'fields': {
-      'primaryKey': []
-    }
+    'columns': []
   };
   var returnValue = JSON.parse(JSON.stringify(sourceTemplate));
   returnValue.connection.data = data;
   returnValue.connection.translationType = translationType;
   returnValue.columns = columns;
-  columns.forEach(function (column) {
-    var v = column.primaryKey;
-    if (!(v === undefined || v === null || v === false)) {
-      returnValue.fields.primaryKey.push(column.name);
-    }
-  });
   return returnValue;
 };
 
@@ -110,8 +101,7 @@ var matchKeys = function (updated, removed, metadata, keys) {
     }).join(',');
     cache[key] = {
       'type': 'create',
-      'data': record,
-      'foreignKey': null
+      'data': record
     };
   });
 
@@ -126,8 +116,7 @@ var matchKeys = function (updated, removed, metadata, keys) {
     if (!cache[key]) {
       cache[key] = {
         'type': 'possible remove',
-        'data': record,
-        'foreignKey': null
+        'data': record
       };
     }
   });
@@ -140,26 +129,28 @@ var matchKeys = function (updated, removed, metadata, keys) {
       return record[pk];
     }).join(',');
     if (cache[key]) {
+      cache[key].osmId = record.foreignKey;
+      cache[key].primaryKey = key;
       if (cache[key].type === 'create') {
         cache[key].type = 'modify';
-        cache[key].foreignKey = record.foreignKey;
       } else if (cache[key].type === 'possible remove') {
         cache[key].type = 'remove';
-        cache[key].foreignKey = record.foreignKey;
       }
     }
   });
 
   // Loop through the cache and add the osmid to the records
   Object.keys(cache).forEach(function (key) {
-    cache[key].data['_osm_id'] = cache[key].foreignKey;
     changes[cache[key].type].push(cache[key].data);
   });
 
   // We don't need the possible removes, so lets take them out of memory
   delete changes['possible remove'];
 
-  return changes;
+  return {
+    'changes': changes,
+    'cache': cache
+  };
 };
 
 var WriteFn = function (databaseConnection, connectionConfig, columns, immutableConfig) {
@@ -173,15 +164,16 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
 
     // Determine the created/modified/deleted data
     var changesObj = matchKeys(updated, removed, metadata, keys);
+    var changes = changesObj.changes;
 
     // Create the translation tasks for created/modified/deleted data
-    var changesObjKeys = [];
+    var changesKeys = [];
     var tasks = [];
-    Object.keys(changesObj).forEach(function (key) {
-      if (changesObj[key].length) {
-        changesObjKeys.push(key);
-        // console.log(createSource(changesObj[key], translationType, columns))
-        tasks.push(translator(createSource(changesObj[key], translationType, columns)));
+    Object.keys(changes).forEach(function (key) {
+      if (changes[key].length) {
+        changesKeys.push(key);
+        // console.log(createSource(changes[key], translationType, columns))
+        tasks.push(translator(createSource(changes[key], translationType, columns)));
       }
     });
 
@@ -199,13 +191,28 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
     return Promise.all(tasks).then(function (results) {
       // Map the result items back out to an object to make them easier to deal with
       var translatedObj = {};
-      changesObjKeys.map(function (key, i) {
+      changesKeys.map(function (key, i) {
+        // Add the OSM id and version if we have it
+        results[i].map(function (result) {
+          if (changes.cache[result.foreignKey]) {
+            result.osmId = cache[result.foreignKey].osmId;
+          }
+          return result;
+        });
         translatedObj[key] = results[i];
       });
       var submit = results[results.length - 1];
       var dummyGeoJson = {
         'features': []
       };
+
+      console.log('create');
+      console.log(translatedObj.create);
+      console.log('modify');
+      console.log(translatedObj.modify);
+      console.log('remove');
+      console.log(translatedObj.remove);
+      process.exit(0);
 
       // Run the submit!
       return submit(translatedObj.create || dummyGeoJson, translatedObj.modify || dummyGeoJson, translatedObj.remove || dummyGeoJson).then(function (submitResult) {
