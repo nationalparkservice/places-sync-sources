@@ -187,8 +187,6 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
 
     // also throw in a task to create the osm-submit object at the end
     var osmSubmitOptions = {
-      'primaryKey': keys.primaryKeys[0],
-      'lastEdit': keys.lastUpdatedField,
       'limit': 15
     };
 
