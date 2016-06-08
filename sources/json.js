@@ -76,7 +76,7 @@ var readJson = function (data, predefinedColumns) {
           }) - 1;
           thisColumn = columns[newColumnIdx];
         }
-        thisColumn.type = tools.getDataType(row[column], thisColumn.type || 'interger', typeof row[column]);
+        thisColumn.type = tools.getDataType(row[column], thisColumn.type || 'integer', typeof row[column]);
       }
     });
   }
