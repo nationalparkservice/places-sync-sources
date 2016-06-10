@@ -93,12 +93,16 @@ var matchKeys = function (updated, removed, metadata, keys) {
 
   var cache = {};
 
+  var getKey = function (record) {
+    return keys.primaryKeys.map(function (pk) {
+      return record[pk];
+    }).join(',');
+  };
+
   // Add all the updates to the cache as "create"
   updated.forEach(function (record) {
     // Create a key for this updated event
-    var key = keys.primaryKeys.map(function (pk) {
-      return record[pk];
-    }).join(',');
+    var key = getKey(record);
     cache[key] = {
       'type': 'create',
       'data': record
@@ -110,9 +114,7 @@ var matchKeys = function (updated, removed, metadata, keys) {
   // We mark it as a possible remove, because if it's not in OSM, we don't remove it at all
   removed.forEach(function (record) {
     // Create a key for this updated event
-    var key = keys.primaryKeys.map(function (pk) {
-      return record[pk];
-    }).join(',');
+    var key = getKey(record);
     if (!cache[key]) {
       cache[key] = {
         'type': 'possible remove',
@@ -125,14 +127,16 @@ var matchKeys = function (updated, removed, metadata, keys) {
   // If a create already exists in OSM, it's really a modify
   // If a possible remove exists in OSM, it's really a remove
   metadata.forEach(function (record) {
-    var key = keys.primaryKeys.map(function (pk) {
-      return record[pk];
-    }).join(',');
+    var osmTypeIdVersion = record.foreignKey && record.foreignKey.split(',');
+    var key = getKey(record);
     if (cache[key]) {
-      cache[key].osmId = record.foreignKey;
+      cache[key].osmElementType = osmTypeIdVersion[0];
+      cache[key].osmId = osmTypeIdVersion[1];
+      cache[key].osmVersion = osmTypeIdVersion[2] && parseInt(osmTypeIdVersion[2]);
       cache[key].primaryKey = key;
       if (cache[key].type === 'create') {
         cache[key].type = 'modify';
+        cache[key].osmVersion += 1;
       } else if (cache[key].type === 'possible remove') {
         cache[key].type = 'remove';
       }
@@ -172,13 +176,16 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
     Object.keys(changes).forEach(function (key) {
       if (changes[key].length) {
         changesKeys.push(key);
-        // console.log(createSource(changes[key], translationType, columns))
         tasks.push(translator(createSource(changes[key], translationType, columns)));
       }
     });
 
     // also throw in a task to create the osm-submit object at the end
     var osmSubmitOptions = {
+      'osmIdField': 'osmId',
+      'versionField': 'osmVersion',
+      'elementTypeField': 'osmElementType',
+      'foreignKeyField': 'foreignKey',
       'limit': 15
     };
 
@@ -193,39 +200,34 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
       var translatedObj = {};
       changesKeys.map(function (key, i) {
         // Add the OSM id and version if we have it
-        results[i].map(function (result) {
-          if (changes.cache[result.foreignKey]) {
-            result.osmId = cache[result.foreignKey].osmId;
+        var geojson = JSON.parse(results[i]);
+        geojson.features = geojson.features.map(function (feature) {
+          if (changesObj.cache[feature.foreignKey]) {
+            feature.osmId = changesObj.cache[feature.foreignKey].osmId;
+            feature.osmVersion = changesObj.cache[feature.foreignKey].osmVersion;
+            feature.osmElementType = changesObj.cache[feature.foreignKey].osmElementType;
           }
-          return result;
+          return feature;
         });
-        translatedObj[key] = results[i];
+        translatedObj[key] = JSON.stringify(geojson);
       });
       var submit = results[results.length - 1];
       var dummyGeoJson = {
         'features': []
       };
 
-      console.log('create');
-      console.log(translatedObj.create);
-      console.log('modify');
-      console.log(translatedObj.modify);
-      console.log('remove');
-      console.log(translatedObj.remove);
-      process.exit(0);
-
       // Run the submit!
       return submit(translatedObj.create || dummyGeoJson, translatedObj.modify || dummyGeoJson, translatedObj.remove || dummyGeoJson).then(function (submitResult) {
-        console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
-        console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
-        console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
-        console.log(JSON.stringify(submitResult, null, 2));
-        console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
-        console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
-        console.log('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
+        var foreignKeys = {};
+        submitResult.forEach(function (res) {
+          if (res.sourceId) {
+            foreignKeys[JSON.stringify(res.sourceId)] = [res.osmType, res.osmId, res.osmVersion].join(',');
+          }
+        });
         return {
           'updated': updated,
-          'removed': removed
+          'removed': removed,
+          'foreignKeys': foreignKeys
         };
       });
     });
