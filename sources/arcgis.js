@@ -228,7 +228,6 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
       }
     });
     // ArcGIS doesn't support the != for not equal, so we have to use <>
-    console.log('a', query.where, quotedQuery);
     query.where = query.where.replace(/" != /g, '" <> ');
     query.where = fandlebars(query.where, quotedQuery);
 
