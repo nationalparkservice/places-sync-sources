@@ -64,9 +64,6 @@ var geojsonToJson = function (geojson) {
 
 var jsonToGeojson = function (json) {
   // TODO, projection information?
-  console.log('@!@!@!@!@!@!@!@!@!@');
-  console.log('json', json);
-  console.log('@!@!@!@!@!@!@!@!@!@');
   json = readJson(json);
   var geojsonObj = {
     'type': 'FeatureCollection',
