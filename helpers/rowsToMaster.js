@@ -7,7 +7,7 @@ var rowsToMaster = function (rows, columns, sourceName, processName, foreignKeys
   var keys = columnsToKeys(columns);
   return rows.map(function (row) {
     var primaryKey = keyCombine(keys.primaryKeys, row);
-    var foreignKey = (foreignKeys && foreignKeys[primaryKey]) || primaryKey;
+    var foreignKey = foreignKeys ? foreignKeys[primaryKey] : primaryKey;
     return {
       'key': primaryKey,
       'foreign_key': foreignKey,
