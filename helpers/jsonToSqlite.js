@@ -59,7 +59,6 @@ var getColumnInfo = function (data, existingColumns) {
 
 module.exports = function (data, existingColumns) {
   return new Promise(function (resolve, reject) {
-    console.log('a', data, existingColumns);
     var columns = getColumnInfo(data, existingColumns);
 
     var tempDbConfig = {
