@@ -7,7 +7,7 @@
     "email": "nate_irwin@nps.gov"
   }],
   "dependencies": {
-    "bluebird": "3.4.0",
+    "bluebird": "3.4.1",
     "csv": "1.1.0",
     "fandlebars": "git+https://github.com/jimmyrocks/fandlebars#master",
     "immutable": "3.8.1",
