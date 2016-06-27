@@ -186,7 +186,7 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
       'versionField': 'osmVersion',
       'elementTypeField': 'osmElementType',
       'foreignKeyField': 'foreignKey',
-      'limit': 15
+      'changesetElements': 100
     };
 
     tasks.push(osmSubmit({
@@ -248,8 +248,7 @@ var osmSource = {
       'access_secret': 'string'
     },
     'columns': 'objectData',
-    'translation': 'objectData',
-    'fields': 'objectNoData'
+    'translation': 'objectData'
   },
   'load': load
 };
