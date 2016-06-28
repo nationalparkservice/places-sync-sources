@@ -14,7 +14,7 @@ module.exports = function (row, columns) {
   verified = notNullFields.map(function (fields) {
     return arrayify(keys[fields]).map(function (field) {
       if (row[field] === undefined) {
-        console.log('failed on field', field);
+        console.log('failed on field', field, row[field], row);
       }
       return row[field] !== undefined;
     }).reduce(allTrue, true);
