@@ -293,7 +293,7 @@ module.exports = function (sourceConfig) {
   }
 
   // The regexp adds a trailing slash if there isn't already one
-  connectionConfig = connectionConfig.set('url', connectionConfig.get('url').replace(/^(.+?)\/?$/g, '$1/'));
+  connectionConfig = connectionConfig.set('url', connectionConfig.get('url').replace(/^(.+?)\/?$/g, '$1/') + (connectionConfig.get('layer_id') !== undefined ? connectionConfig.get('layer_id') + '/': ''));
 
   return postAsync(connectionConfig.get('url'), {
     'f': 'json'
