@@ -180,57 +180,66 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
       }
     });
 
-    // also throw in a task to create the osm-submit object at the end
-    var osmSubmitOptions = {
-      'osmIdField': 'osmId',
-      'versionField': 'osmVersion',
-      'elementTypeField': 'osmElementType',
-      'foreignKeyField': 'foreignKey',
-      'changesetElements': 100
-    };
-
-    tasks.push(osmSubmit({
-      'connection': connectionConfig
-    },
-      osmSubmitOptions
-    ));
-
-    return Promise.all(tasks).then(function (results) {
-      // Map the result items back out to an object to make them easier to deal with
-      var translatedObj = {};
-      changesKeys.map(function (key, i) {
-        // Add the OSM id and version if we have it
-        var geojson = JSON.parse(results[i]);
-        geojson.features = geojson.features.map(function (feature) {
-          if (changesObj.cache[feature.foreignKey]) {
-            feature.osmId = changesObj.cache[feature.foreignKey].osmId;
-            feature.osmVersion = changesObj.cache[feature.foreignKey].osmVersion;
-            feature.osmElementType = changesObj.cache[feature.foreignKey].osmElementType;
-          }
-          return feature;
-        });
-        translatedObj[key] = JSON.stringify(geojson);
+    if (tasks.length === 0) {
+      // No tasks, let's just leave here
+      return tools.dummyPromise({
+        'updated': updated,
+        'removed': removed,
+        'foreignKeys': {}
       });
-      var submit = results[results.length - 1];
-      var dummyGeoJson = {
-        'features': []
+    } else {
+      // otherwise throw in a task to create the osm-submit object at the end
+      var osmSubmitOptions = {
+        'osmIdField': 'osmId',
+        'versionField': 'osmVersion',
+        'elementTypeField': 'osmElementType',
+        'foreignKeyField': 'foreignKey',
+        'changesetElements': 1000
       };
 
-      // Run the submit!
-      return submit(translatedObj.create || dummyGeoJson, translatedObj.modify || dummyGeoJson, translatedObj.remove || dummyGeoJson).then(function (submitResult) {
-        var foreignKeys = {};
-        submitResult.forEach(function (res) {
-          if (res.sourceId) {
-            foreignKeys[JSON.stringify(res.sourceId)] = [res.osmType, res.osmId, res.osmVersion].join(',');
-          }
+      tasks.push(osmSubmit({
+        'connection': connectionConfig
+      },
+        osmSubmitOptions
+      ));
+
+      return Promise.all(tasks).then(function (results) {
+        // Map the result items back out to an object to make them easier to deal with
+        var translatedObj = {};
+        changesKeys.map(function (key, i) {
+          // Add the OSM id and version if we have it
+          var geojson = JSON.parse(results[i]);
+          geojson.features = geojson.features.map(function (feature) {
+            if (changesObj.cache[feature.foreignKey]) {
+              feature.osmId = changesObj.cache[feature.foreignKey].osmId;
+              feature.osmVersion = changesObj.cache[feature.foreignKey].osmVersion;
+              feature.osmElementType = changesObj.cache[feature.foreignKey].osmElementType;
+            }
+            return feature;
+          });
+          translatedObj[key] = JSON.stringify(geojson);
         });
-        return {
-          'updated': updated,
-          'removed': removed,
-          'foreignKeys': foreignKeys
+        var submit = results[results.length - 1];
+        var dummyGeoJson = {
+          'features': []
         };
+
+        // Run the submit!
+        return submit(translatedObj.create || dummyGeoJson, translatedObj.modify || dummyGeoJson, translatedObj.remove || dummyGeoJson).then(function (submitResult) {
+          var foreignKeys = {};
+          submitResult.forEach(function (res) {
+            if (res.sourceId) {
+              foreignKeys[JSON.stringify(res.sourceId)] = [res.osmType, res.osmId, res.osmVersion].join(',');
+            }
+          });
+          return {
+            'updated': updated,
+            'removed': removed,
+            'foreignKeys': foreignKeys
+          };
+        });
       });
-    });
+    }
   };
 };
 
