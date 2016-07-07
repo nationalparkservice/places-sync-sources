@@ -24,7 +24,7 @@ SELECT
     WHEN "masterKey" IS NOT NULL
       AND "userKey" IS NOT NULL
       -- AND "userHash" = "masterHash"
-    THEN 'exisiting'
+    THEN 'existing'
     WHEN "masterKey" IS NOT NULL
         -- This has to be before conflict in order
         AND CAST("masterLastUpdated" AS INTEGER) > {{lastUpdated}}
