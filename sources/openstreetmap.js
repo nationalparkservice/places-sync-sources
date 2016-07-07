@@ -194,7 +194,7 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
         'versionField': 'osmVersion',
         'elementTypeField': 'osmElementType',
         'foreignKeyField': 'foreignKey',
-        'changesetElements': 1000
+        'changesetElements': 3000
       };
 
       tasks.push(osmSubmit({
