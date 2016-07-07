@@ -15,7 +15,7 @@ module.exports = function (database, columns, writeToSource, querySource, master
   var queryMetadata = function (queryName, values) {
     var metadataColumns = ['key', 'foreignKey', 'lastUpdated', 'hash', 'data', 'action'];
     var createQueries = new CreateQueries(metadataColumns, ['key'], ['lastUpdated']);
-    var query = createQueries(queryName, queryName === 'insert' ? undefined : values, queryName === 'select' ? metadataColumns : undefined, 'metadata');
+    var query = createQueries(queryName, queryName === 'insert' ? undefined : values, (queryName === 'select' || queryName === 'insert') ? metadataColumns : undefined, 'metadata');
     return database.query(query[0], queryName === 'insert' ? values : query[1]);
   };
 
@@ -145,6 +145,8 @@ module.exports = function (database, columns, writeToSource, querySource, master
             var results = promiseResults[0];
             results.allKeys = promiseResults[1];
             results.masterCacheKeys = promiseResults[2];
+            console.log('datarz');
+            console.log(JSON.stringify(promiseResults[2], null, 2));
             getUpdates(results.lastSyncTime, results.updatedSinceTime, results.allKeys, results.masterCacheKeys, keys).then(function (values) {
               resolve(values);
             }).catch(reject);
