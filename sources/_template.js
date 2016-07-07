@@ -76,7 +76,7 @@ var createSource = function(sourceConfig, returnObj) {
     'columns': new Immutable.Set(sourceConfig.columns),
     'filter': new Immutable.Map(sourceConfig.filter),
     'transforms': new Immutable.Map(sourceConfig.transforms),
-    'translation': new Immutable.Set(sourceConfig.translation)
+    'translation': new Immutable.Seq(sourceConfig.translation)
   };
   var sourceName = sourceConfig.name;
 
