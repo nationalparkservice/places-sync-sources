@@ -3,7 +3,6 @@ var normalizeToType = require('jm-tools').normalizeToType;
 var stringify = function (v) {
   var returnValue = v;
   try {
-    JSON.parse(v);
     if (typeof v === 'string') {
       returnValue = v;
     } else {
