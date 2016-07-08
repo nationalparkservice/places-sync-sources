@@ -1,18 +1,6 @@
 var normalizeToType = require('jm-tools').normalizeToType;
+var stringify = require('./stringify');
 
-var stringify = function (v) {
-  var returnValue = v;
-  try {
-    if (typeof v === 'string') {
-      returnValue = v;
-    } else {
-      returnValue = JSON.stringify(v);
-    }
-  } catch (e) {
-    returnValue = JSON.stringify(v);
-  }
-  return returnValue;
-};
 var parse = function (v) {
   var returnValue = v;
   try {
