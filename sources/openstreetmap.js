@@ -7,6 +7,7 @@ var superagent = require('superagent');
 var OAuth = require('oauth').OAuth;
 var columnsFromConfig = require('../helpers/columnsFromConfig');
 var osmSubmit = require('openstreetmap-submit');
+var stringify = require('../helpers/stringify');
 require('superagent-oauth')(superagent);
 
 var directReturn = function (_) {
@@ -91,13 +92,13 @@ var matchKeys = function (updated, removed, metadata, keys) {
     'possible remove': []
   };
 
-  var cache = {};
-
   var getKey = function (record) {
     return keys.primaryKeys.map(function (pk) {
       return record[pk];
     }).join(',');
   };
+
+  var cache = {};
 
   // Add all the updates to the cache as "create"
   updated.forEach(function (record) {
@@ -109,9 +110,9 @@ var matchKeys = function (updated, removed, metadata, keys) {
     };
   });
 
-  // If there's a remove and a create for a record, that's really a replace
-  // So we only remove what we don't have a create for
-  // We mark it as a possible remove, because if it's not in OSM, we don't remove it at all
+  // If there's a remove and a create for the same record, then it's really a replace
+  // So we only remove records that don't have a create as well
+  // We mark that record as a possible remove, because if it's not in OSM, we don't remove it at all
   removed.forEach(function (record) {
     // Create a key for this updated event
     var key = getKey(record);
@@ -128,8 +129,8 @@ var matchKeys = function (updated, removed, metadata, keys) {
   // If a possible remove exists in OSM, it's really a remove
   metadata.forEach(function (record) {
     var osmTypeIdVersion = record.foreignKey && record.foreignKey.split(',');
-    var key = getKey(record);
-    if (cache[key]) {
+    var key = record.key;
+    if (cache[key] && record.foreignKey) {
       cache[key].osmElementType = osmTypeIdVersion[0];
       cache[key].osmId = osmTypeIdVersion[1];
       cache[key].osmVersion = osmTypeIdVersion[2] && parseInt(osmTypeIdVersion[2]);
@@ -228,8 +229,8 @@ var WriteFn = function (databaseConnection, connectionConfig, columns, immutable
         return submit(translatedObj.create || dummyGeoJson, translatedObj.modify || dummyGeoJson, translatedObj.remove || dummyGeoJson).then(function (submitResult) {
           var foreignKeys = {};
           submitResult.forEach(function (res) {
-            if (res.sourceId) {
-              foreignKeys[JSON.stringify(res.sourceId)] = [res.osmType, res.osmId, res.osmVersion].join(',');
+            if (res && res.sourceId) {
+              foreignKeys[stringify(res.sourceId)] = [res.osmType, res.osmId, res.osmVersion].join(',');
             }
           });
           return {
