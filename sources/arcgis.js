@@ -54,7 +54,9 @@ var esriToGeoJson = function (esriJson, options) {
   };
 
   geojson.features = esriJson.features.map(function (feature) {
-    return createFeature(feature, options);
+    return feature.geometry && createFeature(feature, options);
+  }).filter(function (feature) {
+    return feature !== undefined;
   });
 
   return geojson;
@@ -293,7 +295,7 @@ module.exports = function (sourceConfig) {
   }
 
   // The regexp adds a trailing slash if there isn't already one
-  connectionConfig = connectionConfig.set('url', connectionConfig.get('url').replace(/^(.+?)\/?$/g, '$1/') + (connectionConfig.get('layer_id') !== undefined ? connectionConfig.get('layer_id') + '/': ''));
+  connectionConfig = connectionConfig.set('url', connectionConfig.get('url').replace(/^(.+?)\/?$/g, '$1/') + (connectionConfig.get('layer_id') !== undefined ? connectionConfig.get('layer_id') + '/' : ''));
 
   return postAsync(connectionConfig.get('url'), {
     'f': 'json'
