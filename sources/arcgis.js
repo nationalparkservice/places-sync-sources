@@ -233,7 +233,7 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
     query.where = query.where.replace(/" != /g, '" <> ');
     query.where = fandlebars(query.where, quotedQuery);
 
-    return runQuery(connectionString.url, query, keys.primaryKeys).then(function (result) {
+    return runQuery(connectionString.sourceUrl, query, keys.primaryKeys).then(function (result) {
       // TODO Map Fields
       return result;
     // return mapFields.data.to(result, fields.mapped)
@@ -287,19 +287,8 @@ var getSqliteType = function (esriType) {
   return returnValue;
 };
 
-module.exports = function (sourceConfig) {
-  var connectionConfig = Immutable.Map(sourceConfig.connection);
-
-  if (typeof connectionConfig.get('url') !== 'string') {
-    throw new Error('url must be defined for a ArcGIS file');
-  }
-
-  // The regexp adds a trailing slash if there isn't already one
-  connectionConfig = connectionConfig.set('url', connectionConfig.get('url').replace(/^(.+?)\/?$/g, '$1/') + (connectionConfig.get('layer_id') !== undefined ? connectionConfig.get('layer_id') + '/' : ''));
-
-  return postAsync(connectionConfig.get('url'), {
-    'f': 'json'
-  }).then(function (source) {
+var getSource = function (connectionConfig, sourceConfig) {
+  var parseSource = function (source) {
     return new Promise(function (resolve, reject) {
       // From this source, we just need to get the column info
       var esriColumns = source.fields.map(function (column, i) {
@@ -348,5 +337,29 @@ module.exports = function (sourceConfig) {
         'querySource': new QuerySource(connectionConfig.toJS(), sourceInfo, sourceConfig.filter, columns, sourceConfig.fields)
       });
     });
+  };
+
+  return postAsync(connectionConfig.get('sourceUrl'), {
+    'f': 'json'
+  }).then(function (source) {
+    if (connectionConfig.get('layer_name') === undefined || source.name === connectionConfig.get('layer_name')) {
+      return parseSource(source);
+    } else {
+      return tools.dummyPromise(null, 'Name doesn\'t match source: ' + connectionConfig.get('layer_name') + ': ' + connectionConfig.get('sourceUrl'));
+    }
   });
+};
+
+module.exports = function (sourceConfig) {
+  var connectionConfig = Immutable.Map(sourceConfig.connection);
+
+  if (typeof connectionConfig.get('url') !== 'string') {
+    throw new Error('url must be defined for a ArcGIS file');
+  }
+
+  // The regexp adds a trailing slash if there isn't already one
+  connectionConfig = connectionConfig.set('url', connectionConfig.get('url').replace(/^(.+?)\/?$/g, '$1/'));
+  connectionConfig = connectionConfig.set('sourceUrl', connectionConfig.get('url') + (connectionConfig.get('layer_id') !== undefined ? connectionConfig.get('layer_id') + '/' : ''));
+
+  return getSource(connectionConfig, sourceConfig);
 };
