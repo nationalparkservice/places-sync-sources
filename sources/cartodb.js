@@ -97,17 +97,13 @@ var WriteFn = function (connection, options, account, tableName, columns, fields
       });
     });
 
-    return Promise.all(tasks.map(function (task) {
-      return task.task.apply(this, task.params);
-    })).then(function () {
-      return Promise.all(removeTasks.map(function (removeTask) {
-        return removeTask.task.apply(this, removeTask.params).then(function () {
-          return tools.dummyPromise({
-            'updated': updated,
-            'removed': removed
-          });
+    return tools.iterateRateLimit(tasks, 'remove / update tasks', false, false, 250).then(function () {
+      return tools.iterateRateLimit(removeTasks, 'remove tasks', false, false, 250).then(function () {
+        return tools.dummyPromise({
+          'updated': updated,
+          'removed': removed
         });
-      }));
+      });
     });
   };
 };
