@@ -95,11 +95,13 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
     if (!countResult.error) {
       var requests = [];
       var count = countResult.count;
+      var tempQueryObj;
       for (var i = 0; i < count; i += queryObj.resultRecordCount) {
-        if (queryObj.resultOffset !== undefined) {
-          queryObj.resultOffset = i;
+        tempQueryObj = JSON.parse(JSON.stringify(queryObj));
+        if (tempQueryObj.resultOffset !== undefined) {
+          tempQueryObj.resultOffset = i;
         }
-        requests.push([sourceUrl + 'query', queryObj]);
+        requests.push([sourceUrl + 'query', tempQueryObj]);
       }
       return tools.iterateTasks(requests.map(function (req) {
         return {
@@ -345,7 +347,7 @@ var getSource = function (connectionConfig, sourceConfig) {
     if (connectionConfig.get('layer_name') === undefined || source.name === connectionConfig.get('layer_name')) {
       return parseSource(source);
     } else {
-      return tools.dummyPromise(null, 'Name doesn\'t match source: ' + connectionConfig.get('layer_name') + ': ' + connectionConfig.get('sourceUrl'));
+      return tools.dummyPromise(null, "Name doesn't match source: " + connectionConfig.get('layer_name') + ': ' + connectionConfig.get('sourceUrl'));
     }
   });
 };
