@@ -145,6 +145,15 @@ module.exports = function (database, columns, writeToSource, querySource, master
             var results = promiseResults[0];
             results.allKeys = promiseResults[1];
             results.masterCacheKeys = promiseResults[2];
+
+            // Check for errors
+            results.allKeys.forEach(function (resultKeys) {
+              Object.keys(resultKeys).forEach(function (item) {
+                if (resultKeys[item] === null) {
+                  reject(new Error('The Primary Key(s) / Edit Dates cannot be null. (' + item + ' = ' + resultKeys[item] + ')'));
+                }
+              });
+            });
             getUpdates(results.lastSyncTime, results.updatedSinceTime, results.allKeys, results.masterCacheKeys, keys).then(function (values) {
               resolve(values);
             }).catch(reject);
