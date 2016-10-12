@@ -33,6 +33,7 @@ var esriToGeoJson = function (esriJson, options) {
   var geojson = {
     'type': 'FeatureCollection'
   };
+  var warnings = [];
 
   // If the sr is specified, add it in
   if (options.sr) {
@@ -45,10 +46,16 @@ var esriToGeoJson = function (esriJson, options) {
   }
 
   var createFeature = function (esriFeature, esriOptions) {
+    var geometry = null;
+    try {
+      geometry = terraformer.parse(esriFeature.geometry, esriOptions);
+    } catch (e) {
+      warnings.push('Terraformer Error with: "' + esriFeature[esriOptions.idAttribute || 'OBJECTID'] + '"' + e);
+    }
     return {
       'type': 'Feature',
       'id': esriFeature[esriOptions.idAttribute || 'OBJECTID'],
-      'geometry': terraformer.parse(esriFeature.geometry, esriOptions),
+      'geometry': geometry,
       'properties': esriFeature.attributes
     };
   };
@@ -59,6 +66,9 @@ var esriToGeoJson = function (esriJson, options) {
     return feature !== undefined;
   });
 
+  if (warnings.length) {
+    console.log('Warnings', warnings);
+  }
   return geojson;
 };
 
@@ -77,10 +87,6 @@ var arcgisWhereObj = function (whereObj, dateColumns) {
       newWhereObj[field] = whereObj[field];
     }
   }
-  // Add the filter to every where
-  // Object.keys(filter || {}).forEach(function (k) {
-  // newWhereObj[k] = filter[k]
-  // })
   return newWhereObj;
 };
 
@@ -129,7 +135,7 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
           });
 
           if (hasGeometries) {
-            geoJson = esriToGeoJson(esriJson, {
+            geoJson = esriToGeoJson (esriJson, {
               'sr': sr,
               'idAttribute': primaryKeys[0]
             });
@@ -153,7 +159,6 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
             });
           }
 
-          // console.log('outputJson', outputJson)
           resolve(outputJson);
         });
       });
@@ -238,7 +243,7 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
     return runQuery(connectionString.sourceUrl, query, keys.primaryKeys).then(function (result) {
       // TODO Map Fields
       return result;
-    // return mapFields.data.to(result, fields.mapped)
+      // return mapFields.data.to(result, fields.mapped)
     });
   };
 };
@@ -293,8 +298,10 @@ var getSource = function (connectionConfig, sourceConfig) {
   var parseSource = function (source) {
     return new Promise(function (resolve, reject) {
       // From this source, we just need to get the column info
-      var esriColumns = source.fields.map(function (column, i) {
-        return {
+
+      var esriColumns = {};
+      source.fields.forEach(function (column, i) {
+        esriColumns[column.name.toLowerCase()] = {
           'name': column.name,
           'type': column.type,
           'sqliteType': getSqliteType(column.type),
@@ -307,14 +314,14 @@ var getSource = function (connectionConfig, sourceConfig) {
 
       // There is also a geometry, which ESRI treats differently than a normal column
       // Bit we treat it as a column
-      esriColumns.unshift({
+      esriColumns.geometry = {
         'name': 'geometry',
         'type': 'geometry',
         'sqliteType': 'BLOB',
         'defaultValue': '',
         'notNull': true,
         'sqliteColumnId': -1
-      });
+      };
 
       var sourceInfo = copyValues(['id', 'objectIdField', 'name', 'editFieldsInfo', 'editingInfo', 'maxRecordCount', 'advancedQueryCapabilities'], source);
 
@@ -329,7 +336,11 @@ var getSource = function (connectionConfig, sourceConfig) {
         sourceInfoFields[field] = sourceConfig.fields[field];
       }
 
-      var columns = columnsFromConfig(esriColumns, sourceInfoFields, true);
+      var esriColumnsArray = Object.keys(esriColumns).map(function (key) {
+        return esriColumns[key];
+      });
+
+      var columns = columnsFromConfig(esriColumnsArray, sourceInfoFields, true);
 
       resolve({
         'data': undefined,
