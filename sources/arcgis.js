@@ -13,12 +13,13 @@ var CreateQueries = require('../helpers/createQueries');
 
 var mapValues = function (result, valueMapped) {
   return result.map(function (record) {
+    var newRecord = JSON.parse(JSON.stringify(record));
     Object.keys(valueMapped).map(function (key) {
-      if (record[key] === valueMapped[key].from) {
-        record[key] = valueMapped[key].to;
+      if (newRecord[key] === valueMapped[key].from) {
+        newRecord[key] = valueMapped[key].to;
       }
     });
-    return record;
+    return newRecord;
   });
 };
 
@@ -83,7 +84,7 @@ var esriToGeoJson = function (esriJson, options) {
   return geojson;
 };
 
-var arcgisWhereObj = function (whereObj, dateColumns) {
+var arcgisWhereObj = function (whereObj, dateColumns, mappedValues) {
   var newWhereObj = {};
 
   // esri dates come in as a unix timestamp in milliseconds, but go out as date strings
@@ -94,10 +95,15 @@ var arcgisWhereObj = function (whereObj, dateColumns) {
   for (var field in whereObj) {
     if (dateColumns.indexOf(field) > -1 && typeof whereObj[field] !== 'object') {
       newWhereObj[field] = timestampToDate(whereObj[field]);
+
+      if (mappedValues && mappedValues[field] && mappedValues[field].to > whereObj[field]) {
+        newWhereObj[field] = [timestampToDate(whereObj[field]), mappedValues[field].from];
+      }
     } else {
       newWhereObj[field] = whereObj[field];
     }
   }
+
   return newWhereObj;
 };
 
@@ -214,7 +220,7 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
     }));
 
     // Update the newWhereObj with some special stuff to deal with dates in AGOL
-    newWhereObj = arcgisWhereObj(newWhereObj, dateColumns);
+    newWhereObj = arcgisWhereObj(newWhereObj, dateColumns, fields.valueMapped);
 
     // Create the query making object
     var createQueries = new CreateQueries(columns, keys.primaryKeys, keys.lastUpdatedField, keys.removedField);
@@ -253,15 +259,12 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
 
     return runQuery(connectionString.sourceUrl, query, keys.primaryKeys).then(function (result) {
       // TODO Map Fields
-      // TODO Map Values (result, fields.mapped)
-      if (result.length > 0) {
-        console.log(result);
-        console.log(mapValues(result, fields.valueMapped));
-        console.log('fields', fields);
-        process.exit(0);
-      }
-      return result;
       // return mapFields.data.to(result, fields.mapped)
+      if (result.length > 0 && fields.valueMapped) {
+        return mapValues(result, fields.valueMapped);
+      } else {
+        return result;
+      }
     });
   };
 };
