@@ -154,7 +154,7 @@ module.exports = function (database, columns, writeToSource, querySource, master
                 }
               });
             });
-            getUpdates(results.lastSyncTime, results.updatedSinceTime, results.allKeys, results.masterCacheKeys, keys).then(function (values) {
+            return getUpdates(results.lastSyncTime, results.updatedSinceTime, results.allKeys, results.masterCacheKeys, keys).then(function (values) {
               resolve(values);
             }).catch(reject);
           }).catch(reject);
