@@ -11,6 +11,17 @@ var fandlebars = require('fandlebars');
 var columnsToKeys = require('../helpers/columnsToKeys');
 var CreateQueries = require('../helpers/createQueries');
 
+var mapValues = function (result, valueMapped) {
+  return result.map(function (record) {
+    Object.keys(valueMapped).map(function (key) {
+      if (record[key] === valueMapped[key].from) {
+        record[key] = valueMapped[key].to;
+      }
+    });
+    return record;
+  });
+};
+
 var geojsonToRows = function (geojson) {
   var features = geojson.features;
   var property;
@@ -135,7 +146,7 @@ var runQuery = function (sourceUrl, queryObj, primaryKeys) {
           });
 
           if (hasGeometries) {
-            geoJson = esriToGeoJson (esriJson, {
+            geoJson = esriToGeoJson(esriJson, {
               'sr': sr,
               'idAttribute': primaryKeys[0]
             });
@@ -242,6 +253,13 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
 
     return runQuery(connectionString.sourceUrl, query, keys.primaryKeys).then(function (result) {
       // TODO Map Fields
+      // TODO Map Values (result, fields.mapped)
+      if (result.length > 0) {
+        console.log(result);
+        console.log(mapValues(result, fields.valueMapped));
+        console.log('fields', fields);
+        process.exit(0);
+      }
       return result;
       // return mapFields.data.to(result, fields.mapped)
     });
