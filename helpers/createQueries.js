@@ -138,8 +138,16 @@ module.exports = function (columns, primaryKey, lastUpdatedField, removedField, 
     var where;
     if (origWhereObj) {
       if (queryName === 'selectSince') {
-        // Special case for the last updated which requires a great than
-        var newWhereObj = tools.setProperty(lastUpdatedField, {'$gt': origWhereObj[lastUpdatedField]}, origWhereObj);
+        // Special case for the last updated which requires a greater than
+        var lastUpdatedObject = tools.arrayify(origWhereObj[lastUpdatedField]).map(function (value, i) {
+          var operator = '$eq';
+          if (i === 0) {
+            operator = '$gt';
+          }
+          return tools.setProperty(lastUpdatedField, tools.setProperty(operator, value, {}), {});
+        });
+        delete origWhereObj[lastUpdatedField];
+        var newWhereObj = tools.setProperty('$or', lastUpdatedObject, origWhereObj);
         where = tools.createWhereClause(newWhereObj, tools.simplifyArray(columns), options);
       } else {
         where = createWhereObj(tools.simplifyArray(requestedKeys || queryKey), origWhereObj, options);
