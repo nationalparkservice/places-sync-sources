@@ -379,7 +379,8 @@ var getSource = function (connectionConfig, sourceConfig) {
     if (connectionConfig.get('layer_name') === undefined || source.name === connectionConfig.get('layer_name')) {
       return parseSource(source);
     } else {
-      return tools.dummyPromise(null, "Name doesn't match source: " + connectionConfig.get('layer_name') + ': ' + connectionConfig.get('sourceUrl'));
+      var e = new Error("Name doesn't match source: " + connectionConfig.get('layer_name') + ' !== ' + source.name + ': ' + connectionConfig.get('sourceUrl'));
+      return tools.dummyPromise(null, e);
     }
   });
 };
