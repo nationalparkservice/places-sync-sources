@@ -14,6 +14,7 @@
     "jm-tools": "git+https://github.com/jimmyrocks/jm-tools",
     "json-stringify-pretty-compact": "1.2.0",
     "oauth": "0.9.15",
+    "openstreetmap-submit": "git+https://github.com/jimmyrocks/openstreetmap-submit",
     "places-sync-databases": "git+https://github.com/nationalparkservice/places-sync-databases",
     "places-sync-translator": "git+https://github.com/nationalparkservice/places-sync-translator",
     "superagent": "3.8.3",
