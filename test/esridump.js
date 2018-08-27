@@ -3,7 +3,9 @@ var arcGisSource = {
   'name': 'ArcGIS Test Source',
   'connection': {
     'type': 'esridump',
-    'url': 'https://mapservices.nps.gov/arcgis/rest/services/NPS_Public_POIs/FeatureServer/0'
+    'url': 'https://mapservices.nps.gov/arcgis/rest/services/NPS_Public_POIs/FeatureServer/',
+    'layer_id': '0',
+    'layer_name': 'POIs'
   }
 };
 var filters = [{
