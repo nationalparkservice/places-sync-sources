@@ -3,7 +3,7 @@ var notFalsey = function (v, name, ignoreCase) {
 
   // If we're ignoring case, make an array of everything in lower case
   var lowerV = ignoreCase ? v.map(function (a) {
-    return a.toLowerCase ? a.toLowerCase() : a;
+    return (a && a.toLowerCase) ? a.toLowerCase() : a;
   }) : v;
   var idx = lowerV.indexOf(ignoreCase ? name.toLowerCase() : name);
   return idx > -1 ? idx : false;
