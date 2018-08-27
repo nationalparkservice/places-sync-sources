@@ -1,14 +1,18 @@
 {
-  "contributors": [{
-    "name": "Jim McAndrew",
-    "email": "james_mcandrew@partner.nps.gov"
-  }, {
-    "name": "Nate Irwin",
-    "email": "nate_irwin@nps.gov"
-  }],
+  "contributors": [
+    {
+      "name": "Jim McAndrew",
+      "email": "james_mcandrew@partner.nps.gov"
+    },
+    {
+      "name": "Nate Irwin",
+      "email": "nate_irwin@nps.gov"
+    }
+  ],
   "dependencies": {
     "bluebird": "3.5.1",
     "csv": "3.1.0",
+    "esri-dump": "0.4.3",
     "fandlebars": "git+https://github.com/jimmyrocks/fandlebars#master",
     "immutable": "3.8.2",
     "jm-tools": "git+https://github.com/jimmyrocks/jm-tools",
@@ -18,11 +22,15 @@
     "places-sync-databases": "git+https://github.com/nationalparkservice/places-sync-databases",
     "places-sync-translator": "git+https://github.com/nationalparkservice/places-sync-translator",
     "superagent": "3.8.3",
-    "superagent-oauth": "0.2.3", 
+    "superagent-oauth": "0.2.3",
     "terraformer-arcgis-parser": "1.1.0"
   },
   "description": "Connect to specific files and tables and query them easily",
-  "keywords": ["nps", "postgres", "cartodb"],
+  "keywords": [
+    "nps",
+    "postgres",
+    "cartodb"
+  ],
   "author": "Jim McAndrew <james_mcandrew@partner.nps.gov>",
   "license": "Public Domain",
   "main": "index.js",
