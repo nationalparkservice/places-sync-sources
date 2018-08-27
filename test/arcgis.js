@@ -3,17 +3,17 @@ var arcGisSource = {
   'name': 'ArcGIS Test Source',
   'connection': {
     'type': 'arcgis',
-    'url': 'http://services1.arcgis.com/fBc8EJBxQRMcHlei/ArcGIS/rest/services/BLCACURE/FeatureServer/0'
+    'url': 'https://mapservices.nps.gov/arcgis/rest/services/NPS_Public_POIs/FeatureServer/0'
   }
 };
 var filters = [{
-  'INPLACES': 'Yes'
+  'SEASONAL': 'Yes'
 }, {
-  'INPLACES': {
+  'SEASONAL': {
     '$eq': 'No'
   }
 }, {
-  'INPLACES': {
+  'SEASONAL': {
     '$ne': 'No'
   }
 }];
