@@ -116,6 +116,9 @@ module.exports = function (sourceConfig) {
   return new Promise(function (fulfill, reject) {
     // Clean up the connectionConfig, and set the defaults
     var connectionConfig = new Immutable.Map(sourceConfig.connection);
+
+    // Add a trailing slash if there isn't one
+    connectionConfig = connectionConfig.set('url', connectionConfig.get('url').replace(/^(.+?)\/?$/g, '$1/'));
     if (typeof connectionConfig.get('url') !== 'string' && connectionConfig.get('data') === undefined) {
       throw new Error('The URL must be defined for an ESRI DUMP source');
     }
