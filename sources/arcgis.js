@@ -220,7 +220,7 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
     }));
 
     // Update the newWhereObj with some special stuff to deal with dates in AGOL
-    newWhereObj = arcgisWhereObj(newWhereObj, dateColumns, fields.valueMapped);
+    newWhereObj = arcgisWhereObj(newWhereObj, dateColumns, fields && fields.valueMapped);
 
     // Create the query making object
     var createQueries = new CreateQueries(columns, keys.primaryKeys, keys.lastUpdatedField, keys.removedField);
@@ -242,6 +242,12 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
     if (sourceInfo.advancedQueryCapabilities && sourceInfo.advancedQueryCapabilities.supportsPagination === true) {
       query.resultOffset = '0';
       query.resultRecordCount = sourceInfo.maxRecordCount;
+    } else {
+      // If we can't paginate, then we need to break it up by bounding box
+      // So let's just say it's 1000
+      // We really should do a query to see what it really is
+      // TODO: above
+      query.resultRecordCount = 1000;
     }
 
     // Replaces the values in the where clause with the fields since arcgis won't do a parameterized query
@@ -260,7 +266,7 @@ var QuerySource = function (connectionString, sourceInfo, baseFilter, columns, f
     return runQuery(connectionString.sourceUrl, query, keys.primaryKeys).then(function (result) {
       // TODO Map Fields
       // return mapFields.data.to(result, fields.mapped)
-      if (result.length > 0 && fields.valueMapped) {
+      if (result.length > 0 && fields && fields.valueMapped) {
         return mapValues(result, fields.valueMapped);
       } else {
         return result;
@@ -321,6 +327,7 @@ var getSource = function (connectionConfig, sourceConfig) {
       // From this source, we just need to get the column info
 
       var esriColumns = {};
+      console.log('source', source);
       source.fields.forEach(function (column, i) {
         esriColumns[column.name.toLowerCase()] = {
           'name': column.name,
@@ -344,7 +351,7 @@ var getSource = function (connectionConfig, sourceConfig) {
         'sqliteColumnId': -1
       };
 
-      var sourceInfo = copyValues(['id', 'objectIdField', 'name', 'editFieldsInfo', 'editingInfo', 'maxRecordCount', 'advancedQueryCapabilities'], source);
+      var sourceInfo = copyValues(['id', 'objectIdField', 'name', 'editFieldsInfo', 'editingInfo', 'maxRecordCount', 'advancedQueryCapabilities', 'extent'], source);
 
       // Get defaults from ArcGIS
       var sourceInfoFields = {
