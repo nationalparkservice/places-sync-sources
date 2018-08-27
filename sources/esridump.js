@@ -12,11 +12,12 @@ var jsonSource = require('./json');
 var stringify = require('json-stringify-pretty-compact');
 var tools = require('jm-tools');
 
-var getEsriDump = function(url) {
+var getEsriDump = function(url, layerId, layerName) {
   return new Promise(function (fulfill, reject) {
-    var jsonStream = esriDump(url);
+    var jsonStream = esriDump(url + layerId);
     var featureCollection = {
       type: 'FeatureCollection',
+      name: layerName,
       features: []
     }
 
@@ -136,7 +137,7 @@ module.exports = function (sourceConfig) {
       'name': 'downloadDataset',
       'description': 'Does a few checks on opens the file if it can',
       'task': getEsriDump,
-      'params': [connectionConfig.get('url')]
+      'params': [connectionConfig.get('url'), connectionConfig.get('layer_id'), connectionConfig.get('layer_name')]
     }, {
       'name': 'convertedFile',
       'description': 'Tries to convert the file from geojson to json',
