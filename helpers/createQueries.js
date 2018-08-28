@@ -39,7 +39,8 @@ module.exports = function (columns, primaryKey, lastUpdatedField, removedField, 
     var whereObj = {};
 
     // If nothing is specified for a value, the default is (null or not null)
-    var defaultWhere = (options && options.defaultWhere) || {
+    var defaultWhere = (options && options.defaultWhere !== undefined) ?
+      options.defaultWhere : {
       '$or': [{
         '$eq': null
       }, {
@@ -64,7 +65,17 @@ module.exports = function (columns, primaryKey, lastUpdatedField, removedField, 
       };
     }
 
-    return tools.createWhereClause(whereObj, tools.simplifyArray(columns), options);
+    var cleanWhereObj = {};
+    for (var pk in whereObj) {
+      if (whereObj[pk]) {
+        cleanWhereObj[pk] = whereObj[pk];
+      }
+    }
+    var whereClause = tools.createWhereClause(cleanWhereObj, tools.simplifyArray(columns), options);
+    if (whereClause[0] === undefined) {
+      whereClause[0] = options.emptyWhereClause;
+    }
+    return whereClause;
   };
 
   var queries = {
