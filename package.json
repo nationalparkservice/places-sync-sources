@@ -10,11 +10,16 @@
     }
   ],
   "dependencies": {
+    "@esri/arcgis-rest-common-types": "^1.8.0",
+    "@esri/arcgis-rest-feature-service": "^1.8.0",
+    "@esri/arcgis-rest-request": "^1.8.0",
     "bluebird": "3.5.1",
     "csv": "3.1.0",
     "esri-dump": "0.4.3",
     "fandlebars": "git+https://github.com/jimmyrocks/fandlebars#master",
     "immutable": "3.8.2",
+    "isomorphic-fetch": "^2.2.1",
+    "isomorphic-form-data": "^2.0.0",
     "jm-tools": "git+https://github.com/jimmyrocks/jm-tools",
     "json-stringify-pretty-compact": "1.2.0",
     "oauth": "0.9.15",
