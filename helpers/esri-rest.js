@@ -171,9 +171,12 @@ var runQuery = function (sourceUrl, origQueryObj, primaryKeys, sourceInfo, optio
       };
       if (result && result.features) {
         rows = result.features.map(function (feature) {
+          feature = feature || {};
           var geometry = null;
           try {
-            geometry = terraformer.parse(esriOptions.asGeoJSON ? feature : feature.geometry, esriOptions);
+            if (feature.geometry) {
+              geometry = terraformer.parse(esriOptions.asGeoJSON ? feature : feature.geometry, esriOptions);
+            }
           } catch (e) {
             console.log('error with geometry', e);
           }
