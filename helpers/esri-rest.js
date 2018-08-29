@@ -165,7 +165,7 @@ var runQuery = function (sourceUrl, origQueryObj, primaryKeys, sourceInfo, optio
     data.forEach(function (result) {
       var rows = [];
       var esriOptions = {
-        'sr': (result && (result.spatialReference.latestWkid || result.spatialReference.wkid)) || null,
+        'sr': (result && result.spatialReference && (result.spatialReference.latestWkid || result.spatialReference.wkid)) || null,
         'stringifyGeometry': options.geojsonAsString !== undefined ? options.geojsonAsString : true,
         'asGeoJSON': options.asGeoJSON !== undefined ? options.asGeoJSON : true
       };
