@@ -13,8 +13,9 @@ var example = function (source) {
 var testSource = {
   'name': 'Generic ArcGIS',
   'connection': {
-    'type': 'arcgis',
-    'url': 'http://services1.arcgis.com/fBc8EJBxQRMcHlei/ArcGIS/rest/services/BLCACURE/FeatureServer/0'
+    'type': 'esri-rest',
+    // 'type': 'arcgis',
+    'url': 'https://services1.arcgis.com/fBc8EJBxQRMcHlei/arcgis/rest/services/BLCACURE_Overlooks/FeatureServer/0'
   }
 };
 
