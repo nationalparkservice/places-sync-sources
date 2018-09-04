@@ -1,10 +1,8 @@
 /* ArcGIS Source:
  */
 
-var Promise = require('bluebird');
 var superagent = require('superagent');
 var terraformer = require('terraformer-arcgis-parser');
-var iterateTasksLight = require('jm-tools').iterateTasksLight;
 var runList = require('./recursive-tasklist');
 
 var startQuery = function (sourceUrl, origQueryObj, primaryKeys, sourceInfo, options) {
@@ -149,6 +147,18 @@ var runQuery = function (sourceUrl, origQueryObj, primaryKeys, sourceInfo, optio
           resolve(null);
         }
       });
+    }).catch(function (e) {
+      return new Promise(function (resolve, reject) {
+        // TODO, actually fail on 404s
+        console.log('Error with request');
+        console.log(e);
+        if (e.code === 'ECONNRESET') {
+          reduceQuery(sourceUrl, newQueryObj, primaryKeys, extent);
+          resolve(null);
+        } else {
+          reject(e);
+        }
+      });
     });
   };
 
@@ -160,7 +170,6 @@ var runQuery = function (sourceUrl, origQueryObj, primaryKeys, sourceInfo, optio
   });
 
   return runList(taskList, results).then(function (data) {
-    // return iterateTasksLight(taskList, 'Load Tasks').then(function (data) {
     var records = [];
     data.forEach(function (result) {
       var rows = [];
@@ -202,10 +211,6 @@ var postAsync = function (url, query) {
       .send(superagent.serialize['application/x-www-form-urlencoded'](query))
       .end(function (err, res) {
         var body;
-        console.log('2323232323');
-        console.log('url', url);
-        console.log('query',query);
-        console.log(res.text);
         try {
           body = JSON.parse(res.text);
         } catch (e) {
@@ -221,6 +226,13 @@ var postAsync = function (url, query) {
 };
 
 module.exports = function (url, whereObj, primaryKeys, sourceInfo, options) {
+  /* Valid Options
+   * git@github.com:nationalparkservice/places-sync-sources.git
+   * 'sr': output SR
+   * 'stringifyGeometry': Determines if the geometry will be an object or a string
+   *  asGeoJSON': Creates everything in features, if false it will create rows, the geometry will be in the "geometry" column. If stringifyGeometry is true the geometry will be a geojson string, otherwise, it'll be a geojson object
+   */
+
   options = options || {};
   return startQuery(url, whereObj, primaryKeys, sourceInfo, options);
 };
